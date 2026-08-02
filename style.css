@@ -16,6 +16,8 @@
 :root {
   --void: #0a0805;
   --void-2: #120d08;
+  --void-a: rgba(10, 8, 5, 0.90);
+  --void-2-a: rgba(18, 13, 8, 0.85);
   --phosphor: #ffb000;
   --phosphor-dim: #7a5200;
   --phosphor-dim2: #3d2a05;
@@ -27,7 +29,7 @@
 
 html, body {
   margin: 0; padding: 0; height: 100%; width: 100%;
-  background: var(--void);
+  background: var(--void) url('images/bg-medieval.jpg') center / cover fixed no-repeat;
   color: var(--phosphor);
   font-family: var(--mono);
   font-size: 14px;
@@ -76,7 +78,7 @@ body::before {
   margin: 16px auto;
   border: 1px solid var(--phosphor-dim);
   padding: 18px;
-  background: var(--void-2);
+  background: var(--void-2-a);
   position: relative;
 }
 .crt-box::before {
@@ -178,23 +180,23 @@ button { font-family: inherit; cursor: pointer; }
 
 .stats-sidebar {
   flex: none;
-  background: var(--void-2);
+  background: var(--void-2-a);
   border-bottom: 1px solid var(--phosphor-dim2);
   padding: 8px 10px;
   font-size: 11px;
   color: var(--phosphor-hi);
 }
 .stat-row { display: flex; justify-content: space-between; gap: 10px; margin: 1px 0; }
-.stat-row .k { color: var(--phosphor-dim); }
-.bar-track { color: var(--phosphor-dim2); letter-spacing: -1px; }
-.bar-fill { color: var(--phosphor); }
+.stat-row .k { color: var(--phosphor-hi); font-weight: bold; }
+.bar-track { color: var(--phosphor); letter-spacing: -1px; }
+.bar-fill { color: var(--phosphor-hi); }
 .bar-fill.hp { color: var(--hp-red); }
 .bar-fill.mp { color: var(--mana-cyan); }
 
 .terminal {
   overflow-y: auto;
   padding: 10px 12px;
-  background: var(--void);
+  background: var(--void-a);
   font-size: 12.5px;
   line-height: 1.6;
   white-space: pre-wrap;
@@ -213,7 +215,7 @@ button { font-family: inherit; cursor: pointer; }
 .action-panel {
   flex: none;
   border-top: 1px solid var(--phosphor-dim2);
-  background: var(--void-2);
+  background: var(--void-2-a);
   max-height: 42vh;
   display: flex;
   flex-direction: column;
@@ -283,7 +285,7 @@ button { font-family: inherit; cursor: pointer; }
 .feature-title { color: var(--phosphor-hi); font-size: 11.5px; margin-bottom: 6px; letter-spacing: 0.5px; }
 .btn-cmd.slot-pick.active { background: var(--phosphor-dim2); border-color: var(--phosphor); }
 
-/* ── Modal overlay (Ranking, etc.) — closes via X or tapping backdrop ── */
+/* ── Modal overlay (Ranking, Aksi Cepat, etc.) — closes via X or tapping backdrop ── */
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -293,18 +295,23 @@ button { font-family: inherit; cursor: pointer; }
   align-items: center;
   justify-content: center;
   padding: 20px;
+  animation: fadeIn 0.15s ease-out;
 }
 .modal-backdrop.hidden { display: none; }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes popIn { from { transform: scale(0.94); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
 .modal-panel {
   width: 100%;
   max-width: 340px;
   max-height: 80vh;
   overflow-y: auto;
-  background: var(--void-2);
+  background: var(--void-2-a);
   border: 1px solid var(--phosphor);
   box-shadow: 0 0 24px rgba(255,176,0,0.15);
   padding: 14px;
+  animation: popIn 0.15s ease-out;
 }
 
 .modal-header {
@@ -325,7 +332,7 @@ button { font-family: inherit; cursor: pointer; }
 }
 .modal-close:active { background: var(--phosphor-dim2); }
 
-/* ── Hamburger menu (account / status / friend list) ── */
+/* ── Hamburger menu (account / status / social) ── */
 .menu-btn {
   position: fixed;
   left: 10px;
@@ -345,13 +352,16 @@ button { font-family: inherit; cursor: pointer; }
   z-index: 65;
   width: 260px;
   max-width: 80vw;
-  background: var(--void-2);
+  background: var(--void-2-a);
   border-right: 1px solid var(--phosphor-dim);
   padding: 56px 12px 12px;
   overflow-y: auto;
   box-shadow: 4px 0 16px rgba(0,0,0,0.5);
+  animation: slideIn 0.18s ease-out;
 }
 .side-menu.hidden { display: none; }
+
+@keyframes slideIn { from { transform: translateX(-12px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
 .side-menu-header {
   display: flex;
@@ -363,7 +373,16 @@ button { font-family: inherit; cursor: pointer; }
 }
 #menu-username { color: var(--phosphor-hi); font-size: 13px; font-weight: bold; }
 
-/* ── Floating quick-action button (Heal/Skill/Use Item/Equip from any tab) ── */
+.side-menu-group-title {
+  color: var(--phosphor-dim);
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-align: center;
+  text-transform: uppercase;
+  margin: 14px 0 6px;
+}
+
+/* ── Floating quick-action button (Heal/Skill/Use Item/Equip, opens a modal) ── */
 .fab-btn {
   position: fixed;
   right: 14px;
@@ -376,35 +395,30 @@ button { font-family: inherit; cursor: pointer; }
   color: var(--phosphor-hi);
   font-size: 20px;
   box-shadow: 0 0 12px rgba(255,176,0,0.25);
+  animation: fabGlow 3s ease-in-out infinite;
+  touch-action: none;
+  cursor: grab;
 }
-.fab-btn:active { background: var(--phosphor-dim); }
+.fab-btn:active { background: var(--phosphor-dim); cursor: grabbing; }
 
-.fab-menu {
-  position: fixed;
-  right: 14px;
-  bottom: calc(42vh + 74px);
-  z-index: 60;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  width: 220px;
+@keyframes fabGlow {
+  0%, 100% { box-shadow: 0 0 10px rgba(255,176,0,0.2); }
+  50% { box-shadow: 0 0 18px rgba(255,176,0,0.4); }
 }
-.fab-menu.hidden { display: none; }
-.fab-item {
-  padding: 10px 12px;
-  background: var(--void-2);
-  border: 1px solid var(--phosphor-dim);
-  color: var(--phosphor);
-  font-family: inherit;
-  font-size: 12px;
-  text-align: left;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+
+/* When HP is low, the FAB pulses red-ish to nudge the player toward healing */
+.fab-btn.low-hp {
+  border-color: var(--hp-red);
+  color: #ffdede;
+  animation: fabUrgent 1s ease-in-out infinite;
 }
-.fab-item:active { background: var(--phosphor-dim2); border-color: var(--phosphor); }
+@keyframes fabUrgent {
+  0%, 100% { box-shadow: 0 0 10px rgba(255,79,79,0.35); }
+  50% { box-shadow: 0 0 22px rgba(255,79,79,0.7); }
+}
 
 @media (orientation: landscape) and (min-width: 640px) {
   .fab-btn { bottom: 14px; }
-  .fab-menu { bottom: 74px; }
 }
 
 /* ── Landscape: 3-column layout (stat sheet | terminal | command rail) ── */

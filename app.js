@@ -182,6 +182,10 @@ function renderStats() {
   goldRow.className = 'stat-row';
   goldRow.innerHTML = `<span class="k">GOLD</span><span>${player.gold}</span>`;
   box.appendChild(goldRow);
+
+  // Nudge the player toward the Heal shortcut when HP is critical
+  const fab = $('#fab-quick');
+  if (fab) fab.classList.toggle('low-hp', player.maxHp > 0 && player.hp / player.maxHp < 0.3);
 }
 
 // ── Command sending ──
@@ -198,10 +202,10 @@ $all('.btn-cmd[data-cmd]').forEach(btn => {
   });
 });
 
-// ── Hamburger menu (account / status / friend list) ──
+// ── Hamburger menu (account / status / social) ──
 $('#menu-btn').onclick = () => {
   $('#side-menu').classList.toggle('hidden');
-  $('#fab-menu').classList.add('hidden');
+  $('#action-modal-backdrop').classList.add('hidden');
   if (player) $('#menu-username').textContent = player.username;
 };
 
@@ -218,6 +222,25 @@ $('#menu-status-btn').onclick = () => {
   sendCommand('stats');
 };
 
+// ── Bank ──
+$('#btn-bank-view').onclick = () => sendCommand('bank_info');
+$('#btn-bank-deposit').onclick = () => {
+  const amount = prompt('Deposit berapa Gold?');
+  if (!amount) return;
+  sendCommand('bank_deposit', { amount: Number(amount) });
+};
+$('#btn-bank-withdraw').onclick = () => {
+  const amount = prompt('Withdraw berapa Gold?');
+  if (!amount) return;
+  sendCommand('bank_withdraw', { amount: Number(amount) });
+};
+function renderBankInfo(bank) {
+  const box = $('#bank-info');
+  if (!bank) { box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  box.textContent = `Saldo Bank: ${bank.balance} Gold | Di tangan: ${bank.onHand} Gold`;
+}
+
 $('#btn-friends-view').onclick = () => sendCommand('friends_list');
 
 $('#btn-friends-add').onclick = () => {
@@ -225,6 +248,40 @@ $('#btn-friends-add').onclick = () => {
   if (!username || !username.trim()) return;
   sendCommand('friend_add', { username: username.trim() });
 };
+
+$('#btn-guild-create').onclick = () => {
+  const name = prompt('Nama guild baru (3-20 karakter):');
+  if (name) sendCommand('guild_create', { name: name.trim() });
+};
+$('#btn-guild-invite').onclick = () => {
+  const username = prompt('Username pemain yang mau diundang:');
+  if (username) sendCommand('guild_invite', { username: username.trim() });
+};
+
+$('#btn-online-refresh').onclick = () => { if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'who' })); };
+
+function renderOnlinePlayers(list) {
+  const box = $('#online-players-list');
+  box.innerHTML = '';
+  if (!list || !list.length) { box.textContent = 'Tidak ada pemain online.'; return; }
+  list.forEach(name => {
+    if (player && name === player.username) return; // skip diri sendiri
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;gap:4px;align-items:center;';
+    const info = document.createElement('div');
+    info.className = 'hint';
+    info.style.flex = '1';
+    info.textContent = `🟢 ${name}`;
+    const btn = document.createElement('button');
+    btn.className = 'btn-cmd small';
+    btn.textContent = '+Teman';
+    btn.onclick = () => sendCommand('friend_add', { username: name });
+    wrap.appendChild(info);
+    wrap.appendChild(btn);
+    box.appendChild(wrap);
+  });
+  if (!box.children.length) box.textContent = 'Cuma kamu yang online.';
+}
 
 // ── Ranking modal (opened from hamburger menu) ──
 $('#btn-open-rank').onclick = () => {
@@ -258,9 +315,82 @@ function renderFriendButtons(friends) {
     box.appendChild(wrap);
   });
 }
+
+// ── Quick Actions modal (FAB): Heal / Item / Skill / Equip ──
 $('#fab-quick').onclick = () => {
-  $('#fab-menu').classList.toggle('hidden');
+  $('#action-modal-backdrop').classList.remove('hidden');
+  $('#side-menu').classList.add('hidden');
 };
+$('#action-modal-close').onclick = () => {
+  $('#action-modal-backdrop').classList.add('hidden');
+};
+$('#action-modal-backdrop').addEventListener('click', (e) => {
+  if (e.target.id === 'action-modal-backdrop') $('#action-modal-backdrop').classList.add('hidden');
+});
+
+// ── Draggable FAB — bisa digeser ke posisi mana saja, posisinya diingat ──
+(function setupDraggableFab() {
+  const fab = $('#fab-quick');
+  let dragging = false, moved = false, startX = 0, startY = 0, startLeft = 0, startTop = 0;
+
+  function clamp(val, min, max) { return Math.max(min, Math.min(max, val)); }
+
+  function savePos(left, top) {
+    try { localStorage.setItem('lyrra_fab_pos', JSON.stringify({ left, top })); } catch { /* ignore */ }
+  }
+
+  function loadPos() {
+    try {
+      const saved = JSON.parse(localStorage.getItem('lyrra_fab_pos') || 'null');
+      if (!saved) return;
+      fab.style.left = clamp(saved.left, 4, window.innerWidth - fab.offsetWidth - 4) + 'px';
+      fab.style.top = clamp(saved.top, 4, window.innerHeight - fab.offsetHeight - 4) + 'px';
+      fab.style.right = 'auto';
+      fab.style.bottom = 'auto';
+    } catch { /* ignore */ }
+  }
+
+  fab.addEventListener('pointerdown', (e) => {
+    dragging = true;
+    moved = false;
+    const rect = fab.getBoundingClientRect();
+    startX = e.clientX;
+    startY = e.clientY;
+    startLeft = rect.left;
+    startTop = rect.top;
+    fab.setPointerCapture(e.pointerId);
+  });
+
+  fab.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    if (Math.abs(dx) > 6 || Math.abs(dy) > 6) moved = true;
+    if (!moved) return;
+    const newLeft = clamp(startLeft + dx, 4, window.innerWidth - fab.offsetWidth - 4);
+    const newTop = clamp(startTop + dy, 4, window.innerHeight - fab.offsetHeight - 4);
+    fab.style.left = newLeft + 'px';
+    fab.style.top = newTop + 'px';
+    fab.style.right = 'auto';
+    fab.style.bottom = 'auto';
+  });
+
+  fab.addEventListener('pointerup', () => {
+    dragging = false;
+    if (moved) {
+      const rect = fab.getBoundingClientRect();
+      savePos(rect.left, rect.top);
+    }
+  });
+
+  // Kalau ini beneran drag (bukan sekadar tap), jangan buka modal Aksi Cepat
+  fab.addEventListener('click', (e) => {
+    if (moved) { e.stopPropagation(); e.preventDefault(); moved = false; }
+  }, true);
+
+  window.addEventListener('resize', loadPos);
+  loadPos();
+})();
 
 function switchToTab(tabName) {
   $all('.tab-btn').forEach(t => t.classList.remove('active'));
@@ -270,27 +400,6 @@ function switchToTab(tabName) {
   if (tabBtn) tabBtn.classList.add('active');
   if (tabContent) tabContent.classList.add('active');
 }
-
-$('#fab-rest').onclick = () => {
-  $('#fab-menu').classList.add('hidden');
-  switchToTab('main');
-  sendCommand('rest');
-};
-$('#fab-skill').onclick = () => {
-  $('#fab-menu').classList.add('hidden');
-  switchToTab('main');
-  sendCommand('skills');
-};
-$('#fab-useitem').onclick = () => {
-  $('#fab-menu').classList.add('hidden');
-  switchToTab('main');
-  sendCommand('inventory');
-};
-$('#fab-equip').onclick = () => {
-  $('#fab-menu').classList.add('hidden');
-  switchToTab('main');
-  sendCommand('inventory');
-};
 
 // Tabs
 $all('.tab-btn').forEach(tab => {
@@ -585,16 +694,6 @@ $('#btn-socket-gem').onclick = () => {
   if (gemId) sendCommand('socket_gem', { slot: selectedSlot, gemId: gemId.trim() });
 };
 
-// ── Guild ──
-$('#btn-guild-create').onclick = () => {
-  const name = prompt('Nama guild baru (3-20 karakter):');
-  if (name) sendCommand('guild_create', { name: name.trim() });
-};
-$('#btn-guild-invite').onclick = () => {
-  const username = prompt('Username pemain yang mau diundang:');
-  if (username) sendCommand('guild_invite', { username: username.trim() });
-};
-
 // ── Pet ──
 $('#btn-pet-equip').onclick = () => {
   const petItemId = prompt('ID item pet dari inventory (mis. pet_slime):');
@@ -669,6 +768,7 @@ function onMessage(evt) {
       if (msg.data?.skills) renderSkillButtons(msg.data.skills);
       if (msg.data?.friends) renderFriendButtons(msg.data.friends);
       if (msg.data?.rank) renderRankList(msg.data.rank);
+      if (msg.data?.bank) renderBankInfo(msg.data.bank);
       break;
 
     case 'chat':
@@ -677,6 +777,7 @@ function onMessage(evt) {
 
     case 'online':
       $('#online-list').textContent = 'Online: ' + (msg.list?.join(', ') || '-');
+      renderOnlinePlayers(msg.list || []);
       break;
 
     default:

@@ -8,7 +8,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="stylesheet" href="style.css?v=12">
+<link rel="stylesheet" href="style.css?v=17">
 </head>
 <body>
 
@@ -71,16 +71,10 @@
 <div id="screen-game" class="screen game-screen">
   <div class="game-layout">
 
-    <!-- Floating quick-action button — always accessible regardless of active tab -->
-    <button id="fab-quick" class="fab-btn" aria-label="Menu cepat">⚡</button>
-    <div id="fab-menu" class="fab-menu hidden">
-      <button class="fab-item" id="fab-rest">🩹 Istirahat (Heal Gratis)</button>
-      <button class="fab-item" id="fab-skill">✨ Skill</button>
-      <button class="fab-item" id="fab-useitem">🧪 Use Item (Potion/Food)</button>
-      <button class="fab-item" id="fab-equip">⚔️ Equip/Unequip</button>
-    </div>
+    <!-- Floating quick-action button — Heal / Skill / Item / Equip, from any tab -->
+    <button id="fab-quick" class="fab-btn" aria-label="Aksi cepat">⚡</button>
 
-    <!-- Hamburger menu — account / status / friend list -->
+    <!-- Hamburger menu — account / status / social (friends, guild, online players) -->
     <button id="menu-btn" class="menu-btn" aria-label="Menu akun">☰</button>
     <div id="side-menu" class="side-menu hidden">
       <div class="side-menu-header">
@@ -94,12 +88,40 @@
       </div>
 
       <div class="feature-section">
+        <div class="feature-title">🏦 Bank <span class="hint-inline">(bunga 1%/hari)</span></div>
+        <button class="btn-cmd small" id="btn-bank-view">Cek Saldo</button>
+        <div id="bank-info" class="hint" style="display:none; margin:6px 0;"></div>
+        <div class="button-grid">
+          <button class="btn-cmd small" id="btn-bank-deposit">Deposit</button>
+          <button class="btn-cmd small" id="btn-bank-withdraw">Withdraw</button>
+        </div>
+      </div>
+
+      <div class="side-menu-group-title">— Sosial —</div>
+
+      <div class="feature-section">
+        <div class="feature-title">🌐 Pemain Online</div>
+        <button class="btn-cmd small" id="btn-online-refresh">Refresh Daftar Online</button>
+        <div id="online-players-list" class="button-grid" style="margin-top:6px;"></div>
+      </div>
+
+      <div class="feature-section">
         <div class="feature-title">👥 Friend List</div>
         <div class="button-grid">
           <button class="btn-cmd small" id="btn-friends-view">Lihat Teman</button>
           <button class="btn-cmd small" id="btn-friends-add">Tambah Teman</button>
         </div>
         <div id="friend-list" class="button-grid" style="margin-top:6px;"></div>
+      </div>
+
+      <div class="feature-section">
+        <div class="feature-title">🏰 Guild</div>
+        <div class="button-grid">
+          <button class="btn-cmd small" data-cmd="guild_info">Info Guild</button>
+          <button class="btn-cmd small" data-cmd="guild_leave">Keluar Guild</button>
+          <button class="btn-cmd small" id="btn-guild-create">Buat Guild</button>
+          <button class="btn-cmd small" id="btn-guild-invite">Undang Pemain</button>
+        </div>
       </div>
 
       <div class="feature-section">
@@ -129,13 +151,7 @@
         <button class="btn-cmd" data-cmd="inventory">Inventory</button>
         <button class="btn-cmd" data-cmd="equipment">Equipment</button>
         <button class="btn-cmd" data-cmd="monsters">Monster</button>
-        <button class="btn-cmd" data-cmd="rest">Istirahat (Heal Gratis)</button>
-        <button class="btn-cmd" data-cmd="skills">Skill</button>
       </div>
-      <div id="equip-list" class="button-grid" style="margin-top:6px;"></div>
-      <div id="unequip-list" class="button-grid" style="margin-top:6px;"></div>
-      <div id="usable-list" class="button-grid" style="margin-top:6px;"></div>
-      <div id="skill-list" class="button-grid" style="margin-top:6px;"></div>
       <div class="gather-row">
         <span class="hint">Gather:</span>
         <button class="btn-cmd small" data-cmd="gather" data-args='{"profession":"mining"}'>Mining</button>
@@ -171,16 +187,6 @@
           <button class="btn-cmd small" data-cmd="recipes" data-args='{"profession":"tailoring"}'>Tailoring</button>
         </div>
         <div id="craft-list" class="button-grid"></div>
-      </div>
-
-      <div class="feature-section">
-        <div class="feature-title">🏰 Guild</div>
-        <div class="button-grid">
-          <button class="btn-cmd small" data-cmd="guild_info">Info Guild</button>
-          <button class="btn-cmd small" data-cmd="guild_leave">Keluar Guild</button>
-          <button class="btn-cmd small" id="btn-guild-create">Buat Guild</button>
-          <button class="btn-cmd small" id="btn-guild-invite">Undang Pemain</button>
-        </div>
       </div>
 
       <div class="feature-section">
@@ -278,6 +284,41 @@
     </div>
     </div>
 
+    <!-- Quick Actions modal (FAB) — Heal / Skill / Item / Equip, closes via X or tapping outside -->
+    <div id="action-modal-backdrop" class="modal-backdrop hidden">
+      <div class="modal-panel">
+        <div class="modal-header">
+          <div class="feature-title">⚡ Aksi Cepat</div>
+          <button id="action-modal-close" class="modal-close" aria-label="Tutup">✕</button>
+        </div>
+
+        <div class="feature-section">
+          <div class="feature-title">🩹 Heal</div>
+          <button class="btn-cmd small" data-cmd="rest">Istirahat (Heal Gratis, +20%)</button>
+        </div>
+
+        <div class="feature-section">
+          <div class="feature-title">🧪 Item</div>
+          <button class="btn-cmd small" data-cmd="inventory">Lihat Potion / Food</button>
+          <div id="usable-list" class="button-grid" style="margin-top:6px;"></div>
+        </div>
+
+        <div class="feature-section">
+          <div class="feature-title">✨ Skill</div>
+          <button class="btn-cmd small" data-cmd="skills">Lihat Skill</button>
+          <div id="skill-list" class="button-grid" style="margin-top:6px;"></div>
+        </div>
+
+        <div class="feature-section">
+          <div class="feature-title">⚔️ Equip</div>
+          <button class="btn-cmd small" data-cmd="inventory">Lihat Equipment yang Bisa Dipakai</button>
+          <div id="equip-list" class="button-grid" style="margin-top:6px;"></div>
+          <button class="btn-cmd small" data-cmd="equipment" style="margin-top:6px;">Lihat Equipment Terpasang</button>
+          <div id="unequip-list" class="button-grid" style="margin-top:6px;"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- Ranking modal — floating overlay, closes via X or tapping outside -->
     <div id="rank-modal-backdrop" class="modal-backdrop hidden">
       <div id="rank-modal" class="modal-panel">
@@ -298,6 +339,6 @@
   </div>
 </div>
 
-<script src="app.js?v=12"></script>
+<script src="app.js?v=17"></script>
 </body>
 </html>
