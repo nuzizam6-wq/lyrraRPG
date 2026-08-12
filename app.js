@@ -147,45 +147,18 @@ function asciiBar(cur, max, width = 10, fillChar = '#', emptyChar = '-') {
 
 function renderStats() {
   if (!player) return;
-  const menuName = $('#menu-username');
-  if (menuName) menuName.textContent = player.username;
-  const box = $('#stats-bar');
-  box.innerHTML = '';
-  const rows = [
-    ['NAME', player.username],
-    ['CLASS', player.class || '-'],
-    ['LV', String(player.level)],
-  ];
-  rows.forEach(([k, v]) => {
-    const row = document.createElement('div');
-    row.className = 'stat-row';
-    row.innerHTML = `<span class="k">${k}</span><span>${v}</span>`;
-    box.appendChild(row);
-  });
 
-  const hpRow = document.createElement('div');
-  hpRow.className = 'stat-row';
-  hpRow.innerHTML = `<span class="k">HP</span><span class="bar-track">[<span class="bar-fill hp">${asciiBar(player.hp, player.maxHp)}</span>] ${player.hp}/${player.maxHp}</span>`;
-  box.appendChild(hpRow);
+  $('#stat-name').textContent = player.username;
+  $('#stat-class').textContent = player.class || '-';
+  $('#stat-lv').textContent = player.level;
+  $('#stat-hp').innerHTML = `[<span class="bar-fill hp">${asciiBar(player.hp, player.maxHp)}</span>] ${player.hp}/${player.maxHp}`;
+  $('#stat-mp').innerHTML = `[<span class="bar-fill mp">${asciiBar(player.mana, player.maxMana)}</span>] ${player.mana}/${player.maxMana}`;
+  $('#stat-exp').innerHTML = `[<span class="bar-fill">${asciiBar(player.exp, player.expNext)}</span>] ${player.exp}/${player.expNext}`;
+  $('#stat-gold').textContent = player.gold;
+  $('#stat-loc').textContent = AREA_NAMES[player.map] || player.map || '-';
 
-  const mpRow = document.createElement('div');
-  mpRow.className = 'stat-row';
-  mpRow.innerHTML = `<span class="k">MP</span><span class="bar-track">[<span class="bar-fill mp">${asciiBar(player.mana, player.maxMana)}</span>] ${player.mana}/${player.maxMana}</span>`;
-  box.appendChild(mpRow);
-
-  const expRow = document.createElement('div');
-  expRow.className = 'stat-row';
-  expRow.innerHTML = `<span class="k">EXP</span><span class="bar-track">[<span class="bar-fill">${asciiBar(player.exp, player.expNext)}</span>] ${player.exp}/${player.expNext}</span>`;
-  box.appendChild(expRow);
-
-  const goldRow = document.createElement('div');
-  goldRow.className = 'stat-row';
-  goldRow.innerHTML = `<span class="k">GOLD</span><span>${player.gold}</span>`;
-  box.appendChild(goldRow);
-
-  // Nudge the player toward the Heal shortcut when HP is critical
-  const fab = $('#fab-quick');
-  if (fab) fab.classList.toggle('low-hp', player.maxHp > 0 && player.hp / player.maxHp < 0.3);
+  // Nudge the player toward Rest/Heal when HP is critical
+  $('#stat-hp').closest('.stat-row').classList.toggle('low-hp', player.maxHp > 0 && player.hp / player.maxHp < 0.3);
 }
 
 // ── Command sending ──
@@ -202,24 +175,24 @@ $all('.btn-cmd[data-cmd]').forEach(btn => {
   });
 });
 
-// ── Hamburger menu (account / status / social) ──
-$('#menu-btn').onclick = () => {
-  $('#side-menu').classList.toggle('hidden');
-  $('#action-modal-backdrop').classList.add('hidden');
-  if (player) $('#menu-username').textContent = player.username;
-};
+// ── Nav strip switching (replaces the old tab bar / hamburger / FAB) ──
+function switchSection(key) {
+  $all('.nav-item').forEach(n => n.classList.remove('active'));
+  $all('.content-panel').forEach(p => p.classList.remove('active'));
+  const navBtn = document.querySelector(`.nav-item[data-section="${key}"]`);
+  const panel = document.querySelector(`.content-panel[data-section-content="${key}"]`);
+  if (navBtn) { navBtn.classList.add('active'); navBtn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' }); }
+  if (panel) panel.classList.add('active');
+}
+$all('.nav-item[data-section]').forEach(btn => {
+  btn.addEventListener('click', () => switchSection(btn.dataset.section));
+});
 
 $('#btn-logout').onclick = () => {
   clearSession(currentHost, currentPort);
   if (ws) ws.close();
   player = null;
   showScreen('#screen-connect');
-};
-
-$('#menu-status-btn').onclick = () => {
-  $('#side-menu').classList.add('hidden');
-  switchToTab('main');
-  sendCommand('stats');
 };
 
 // ── Bank ──
@@ -284,7 +257,7 @@ function renderOnlinePlayers(list) {
     const info = document.createElement('div');
     info.className = 'hint';
     info.style.flex = '1';
-    info.textContent = `🟢 ${name}`;
+    info.textContent = `[ON] ${name}`;
     const btn = document.createElement('button');
     btn.className = 'btn-cmd small';
     btn.textContent = '+Teman';
@@ -295,18 +268,6 @@ function renderOnlinePlayers(list) {
   });
   if (!box.children.length) box.textContent = 'Cuma kamu yang online.';
 }
-
-// ── Ranking modal (opened from hamburger menu) ──
-$('#btn-open-rank').onclick = () => {
-  $('#side-menu').classList.add('hidden');
-  $('#rank-modal-backdrop').classList.remove('hidden');
-};
-$('#rank-modal-close').onclick = () => {
-  $('#rank-modal-backdrop').classList.add('hidden');
-};
-$('#rank-modal-backdrop').addEventListener('click', (e) => {
-  if (e.target.id === 'rank-modal-backdrop') $('#rank-modal-backdrop').classList.add('hidden');
-});
 
 function renderFriendButtons(friends) {
   const box = $('#friend-list');
@@ -329,19 +290,29 @@ function renderFriendButtons(friends) {
   });
 }
 
-// ── Inventory modal (bag button) ──
-$('#bag-btn').onclick = () => {
-  $('#inventory-modal-backdrop').classList.remove('hidden');
-  $('#side-menu').classList.add('hidden');
-  $('#action-modal-backdrop').classList.add('hidden');
-  sendCommand('inventory');
-  sendCommand('equipment');
+// ── World Map modal (tetap modal — ini konten visual, bukan panel navigasi) ──
+const AREA_NAMES = {
+  starter_village: 'Desa Awal', forest: 'Hutan', deep_forest: 'Hutan Dalam',
+  mine: 'Tambang', cave: 'Gua', desert: 'Gurun', oasis: 'Oasis', swamp: 'Rawa',
+  snow_mountain: 'Pegunungan Salju', volcano: 'Gunung Berapi', ancient_ruins: 'Reruntuhan Kuno',
+  castle: 'Kastil', harbor: 'Pelabuhan', ocean: 'Samudra', dark_realm: 'Alam Gelap',
+  sky_island: 'Pulau Langit', ngawi_island: 'Ngawi Island', wizard_village: 'Wizard Village',
 };
-$('#inventory-modal-close').onclick = () => {
-  $('#inventory-modal-backdrop').classList.add('hidden');
+
+$('#btn-open-map').onclick = () => {
+  $('#map-modal-backdrop').classList.remove('hidden');
+  const label = $('#map-location-label');
+  if (player?.map) {
+    label.textContent = `Lokasi kamu: ${AREA_NAMES[player.map] || player.map}`;
+  } else {
+    label.textContent = '';
+  }
 };
-$('#inventory-modal-backdrop').addEventListener('click', (e) => {
-  if (e.target.id === 'inventory-modal-backdrop') $('#inventory-modal-backdrop').classList.add('hidden');
+$('#map-modal-close').onclick = () => {
+  $('#map-modal-backdrop').classList.add('hidden');
+};
+$('#map-modal-backdrop').addEventListener('click', (e) => {
+  if (e.target.id === 'map-modal-backdrop') $('#map-modal-backdrop').classList.add('hidden');
 });
 
 function renderFullInventory(items) {
@@ -380,152 +351,137 @@ function renderFullInventory(items) {
   });
 }
 
-// ── Quick Actions modal (FAB): Heal / Item / Skill / Equip ──
-$('#fab-quick').onclick = () => {
-  $('#action-modal-backdrop').classList.remove('hidden');
-  $('#side-menu').classList.add('hidden');
-};
-$('#action-modal-close').onclick = () => {
-  $('#action-modal-backdrop').classList.add('hidden');
-};
-$('#action-modal-backdrop').addEventListener('click', (e) => {
-  if (e.target.id === 'action-modal-backdrop') $('#action-modal-backdrop').classList.add('hidden');
+// ── Quick-command grid (bottom toolbar shortcuts) ──
+$all('.qc-btn[data-qc]').forEach(btn => {
+  btn.addEventListener('click', () => runQuickCommand(btn.dataset.qc));
 });
 
-// ── Draggable FAB — bisa digeser ke posisi mana saja, posisinya diingat ──
-// ── Anchor the FAB (⚡) and bag (🎒) buttons to the REAL top edge of the
-// action panel, measured live — because the panel's height changes per tab
-// (Aksi is short, Fitur is long), a hardcoded vh-based offset would drift
-// out of place. This re-measures whenever the panel's size actually changes. ──
-function anchorFloatingButtons() {
-  const panel = $('#action-panel');
-  const bag = $('#bag-btn');
-  const fab = $('#fab-quick');
-  if (!panel) return;
-  const top = panel.getBoundingClientRect().top;
-
-  if (bag) {
-    bag.style.position = 'fixed';
-    bag.style.top = (top - bag.offsetHeight) + 'px';
-    bag.style.bottom = 'auto';
-  }
-  if (fab && !hasCustomFabPos()) {
-    fab.style.position = 'fixed';
-    fab.style.top = (top - fab.offsetHeight - 14) + 'px';
-    fab.style.bottom = 'auto';
+function runQuickCommand(qc) {
+  switch (qc) {
+    case 'attack':
+      switchSection('combat');
+      quickAttackFirstMonster();
+      break;
+    case 'skill':
+      switchSection('char');
+      sendCommand('skills');
+      break;
+    case 'potion':
+      quickUseFirstPotion();
+      break;
+    case 'gather':
+      switchSection('prof');
+      sendCommand('gather', { profession: 'mining' });
+      break;
+    case 'rest':
+      sendCommand('rest');
+      break;
+    case 'dungeon':
+      switchSection('dungeon');
+      sendCommand('dungeons');
+      break;
+    case 'boss':
+      switchSection('boss');
+      sendCommand('worldboss_status');
+      break;
+    case 'shop':
+      switchSection('shop');
+      sendCommand('shop');
+      break;
   }
 }
 
-function hasCustomFabPos() {
-  try { return !!localStorage.getItem('lyrra_fab_pos'); } catch { return false; }
-}
-
-(function setupDraggableFab() {
-  const fab = $('#fab-quick');
-  let dragging = false, moved = false, startX = 0, startY = 0, startLeft = 0, startTop = 0;
-
-  function clamp(val, min, max) { return Math.max(min, Math.min(max, val)); }
-
-  function savePos(left, top) {
-    try { localStorage.setItem('lyrra_fab_pos', JSON.stringify({ left, top })); } catch { /* ignore */ }
-  }
-
-  function loadPos() {
-    try {
-      const saved = JSON.parse(localStorage.getItem('lyrra_fab_pos') || 'null');
-      if (!saved) return;
-      fab.style.left = clamp(saved.left, 4, window.innerWidth - fab.offsetWidth - 4) + 'px';
-      fab.style.top = clamp(saved.top, 4, window.innerHeight - fab.offsetHeight - 4) + 'px';
-      fab.style.right = 'auto';
-      fab.style.bottom = 'auto';
-    } catch { /* ignore */ }
-  }
-
-  fab.addEventListener('pointerdown', (e) => {
-    dragging = true;
-    moved = false;
-    const rect = fab.getBoundingClientRect();
-    startX = e.clientX;
-    startY = e.clientY;
-    startLeft = rect.left;
-    startTop = rect.top;
-    fab.setPointerCapture(e.pointerId);
-  });
-
-  fab.addEventListener('pointermove', (e) => {
-    if (!dragging) return;
-    const dx = e.clientX - startX;
-    const dy = e.clientY - startY;
-    if (Math.abs(dx) > 6 || Math.abs(dy) > 6) moved = true;
-    if (!moved) return;
-    const newLeft = clamp(startLeft + dx, 4, window.innerWidth - fab.offsetWidth - 4);
-    const newTop = clamp(startTop + dy, 4, window.innerHeight - fab.offsetHeight - 4);
-    fab.style.left = newLeft + 'px';
-    fab.style.top = newTop + 'px';
-    fab.style.right = 'auto';
-    fab.style.bottom = 'auto';
-  });
-
-  fab.addEventListener('pointerup', () => {
-    dragging = false;
-    if (moved) {
-      const rect = fab.getBoundingClientRect();
-      savePos(rect.left, rect.top);
+// Serang monster pertama yang ada di area saat ini (tombol cepat)
+function quickAttackFirstMonster() {
+  if (!ws || ws.readyState !== WebSocket.OPEN) return;
+  const handler = (evt) => {
+    const msg = JSON.parse(evt.data);
+    if (msg.type === 'log' && msg.data?.monsters) {
+      ws.removeEventListener('message', handler);
+      if (msg.data.monsters.length) sendCommand('fight', { monsterId: msg.data.monsters[0].id });
+      else logLine('Tidak ada monster di area ini.', 'sys');
     }
-  });
-
-  // Kalau ini beneran drag (bukan sekadar tap), jangan buka modal Aksi Cepat
-  fab.addEventListener('click', (e) => {
-    if (moved) { e.stopPropagation(); e.preventDefault(); moved = false; }
-  }, true);
-
-  if (hasCustomFabPos()) loadPos();
-
-  // Re-anchor bag/FAB whenever the action-panel's actual size changes
-  // (tab switch, dungeon panel show/hide, orientation change, etc.)
-  if (window.ResizeObserver) {
-    const ro = new ResizeObserver(() => anchorFloatingButtons());
-    ro.observe($('#action-panel'));
-  }
-  window.addEventListener('resize', anchorFloatingButtons);
-  window.addEventListener('orientationchange', () => setTimeout(anchorFloatingButtons, 60));
-  anchorFloatingButtons();
-})();
-
-function switchToTab(tabName) {
-  $all('.tab-btn').forEach(t => t.classList.remove('active'));
-  $all('.tab-content').forEach(t => t.classList.remove('active'));
-  const tabBtn = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
-  const tabContent = document.querySelector(`.tab-content[data-tab-content="${tabName}"]`);
-  if (tabBtn) tabBtn.classList.add('active');
-  if (tabContent) tabContent.classList.add('active');
+  };
+  ws.addEventListener('message', handler);
+  sendCommand('monsters');
 }
 
-// Tabs
-$all('.tab-btn').forEach(tab => {
-  tab.addEventListener('click', () => {
-    $all('.tab-btn').forEach(t => t.classList.remove('active'));
-    $all('.tab-content').forEach(t => t.classList.remove('active'));
-    tab.classList.add('active');
-    $(`.tab-content[data-tab-content="${tab.dataset.tab}"]`).classList.add('active');
-  });
-});
+// Pakai potion pertama yang ada di inventory (tombol cepat)
+function quickUseFirstPotion() {
+  if (!ws || ws.readyState !== WebSocket.OPEN) return;
+  const handler = (evt) => {
+    const msg = JSON.parse(evt.data);
+    if (msg.type === 'log' && msg.data?.usableItems) {
+      ws.removeEventListener('message', handler);
+      if (msg.data.usableItems.length) sendCommand('use_item', { itemId: msg.data.usableItems[0].id });
+      else logLine('Tidak ada potion/food di inventory.', 'sys');
+    }
+  };
+  ws.addEventListener('message', handler);
+  sendCommand('inventory');
+}
 
-// Chat
-$('#btn-send-chat').onclick = sendChat;
-$('#in-chat').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendChat(); });
-function sendChat() {
-  const input = $('#in-chat');
-  const text = input.value.trim();
-  if (!text) return;
-  ws.send(JSON.stringify({ type: 'chat', text }));
+// ── Command input line — command singkat gaya terminal lama ──
+const CMD_HELP = [
+  'Ketik tanpa "/" buat kirim chat global.',
+  '/help — daftar command',
+  '/go [area] — pindah lokasi',
+  '/gather [profesi] — mining/chopping/fishing/farming/hunting/herbalism',
+  '/attack — serang monster pertama di area',
+  '/skill — buka daftar skill',
+  '/rest — heal gratis',
+  '/dungeon, /boss, /shop, /bank, /guild, /quest, /craft, /upgrade, /market, /rank, /pet — buka panel terkait',
+  '/who — daftar pemain online',
+  '/clear — bersihkan layar terminal',
+];
+
+$('#btn-cmd-send').onclick = runCmdInput;
+$('#in-cmd').addEventListener('keydown', (e) => { if (e.key === 'Enter') runCmdInput(); });
+
+function runCmdInput() {
+  const input = $('#in-cmd');
+  const raw = input.value.trim();
+  if (!raw) return;
   input.value = '';
-  // Fix: on some Android WebView + Gboard combos, clearing .value without
-  // resetting the cursor leaves the keyboard's internal position stale,
-  // causing the NEXT message typed to insert characters at position 0
-  // (i.e. the whole message comes out reversed). Explicitly re-sync it.
   input.setSelectionRange(0, 0);
   input.focus();
+
+  // Teks biasa (nggak diawali "/") dikirim sebagai chat, bukan command.
+  // Nggak di-echo manual di sini karena server bakal echo balik pesannya sendiri.
+  if (!raw.startsWith('/')) {
+    if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'chat', text: raw }));
+    return;
+  }
+
+  logLine('❯ ' + raw, 'chat');
+
+  const parts = raw.replace(/^\//, '').split(/\s+/);
+  const cmd = parts[0].toLowerCase();
+  const rest = parts.slice(1).join(' ');
+
+  switch (cmd) {
+    case 'help': logLines(CMD_HELP, 'sys'); break;
+    case 'clear': $('#terminal').innerHTML = ''; break;
+    case 'go': if (rest) sendCommand('move', { to: rest.toLowerCase().replace(/\s+/g, '_') }); else logLine('Format: /go [nama_area]', 'sys'); break;
+    case 'gather': switchSection('prof'); sendCommand('gather', { profession: rest || 'mining' }); break;
+    case 'attack': switchSection('combat'); quickAttackFirstMonster(); break;
+    case 'skill': case 'skills': switchSection('char'); sendCommand('skills'); break;
+    case 'rest': sendCommand('rest'); break;
+    case 'dungeon': switchSection('dungeon'); sendCommand('dungeons'); break;
+    case 'boss': switchSection('boss'); sendCommand('worldboss_status'); break;
+    case 'shop': switchSection('shop'); sendCommand('shop'); break;
+    case 'bank': switchSection('bank'); sendCommand('bank_info'); break;
+    case 'guild': switchSection('guild'); sendCommand('guild_info'); break;
+    case 'quest': switchSection('quest'); sendCommand('quests'); break;
+    case 'craft': switchSection('craf'); break;
+    case 'upgrade': switchSection('upgrade'); break;
+    case 'market': switchSection('shop'); sendCommand('market_browse', {}); break;
+    case 'rank': switchSection('lb'); break;
+    case 'pet': switchSection('extra'); sendCommand('pet_status'); break;
+    case 'who': if (ws) ws.send(JSON.stringify({ type: 'who' })); break;
+    case 'look': switchSection('world'); sendCommand('look'); break;
+    default: logLine(`Command "/${cmd}" tidak dikenal. Ketik /help buat daftar command.`, 'sys');
+  }
 }
 
 // ── Dynamic buttons from structured server data ──
@@ -549,7 +505,7 @@ function renderFightButtons(monsters) {
   monsters.forEach(m => {
     const btn = document.createElement('button');
     btn.className = 'btn-cmd';
-    btn.textContent = `${m.name} (Lv.${m.level}) [${m.type}]`;
+    btn.innerHTML = `${m.name} <span class="badge">Lv.${m.level}</span> <span class="badge hi">${m.type}</span>`;
     btn.onclick = () => sendCommand('fight', { monsterId: m.id });
     box.appendChild(btn);
   });
@@ -588,7 +544,7 @@ function renderDungeonButtons(dungeons) {
   dungeons.forEach(d => {
     const btn = document.createElement('button');
     btn.className = 'btn-cmd small';
-    btn.textContent = `${d.name}${d.available ? '' : ' (terkunci)'}`;
+    btn.innerHTML = `${d.name} ${d.available ? '' : '<span class="badge danger">terkunci</span>'}`;
     btn.disabled = !d.available;
     btn.onclick = () => sendCommand('dungeon_enter', { dungeonId: d.id });
     box.appendChild(btn);
@@ -674,7 +630,8 @@ function renderRankList(rank) {
     const line = document.createElement('div');
     line.className = 'hint';
     line.style.display = 'block';
-    line.textContent = `#${r.pos} ${r.username} — ${r.value}`;
+    line.style.margin = '4px 0';
+    line.innerHTML = `<span class="badge hi">#${r.pos}</span> ${r.username} — ${r.value}`;
     box.appendChild(line);
   });
 }
@@ -728,7 +685,7 @@ function renderEquippedInBag(slots) {
   box.innerHTML = '';
   const label = document.createElement('div');
   label.className = 'feature-title';
-  label.textContent = '⚔️ Terpasang';
+  label.textContent = '== TERPASANG ==';
   box.appendChild(label);
   if (!slots || !slots.length) {
     const empty = document.createElement('div');

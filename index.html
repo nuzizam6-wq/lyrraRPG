@@ -8,7 +8,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="stylesheet" href="style.css?v=26">
+<link rel="stylesheet" href="style.css?v=31">
 </head>
 <body>
 
@@ -69,301 +69,359 @@
   </div>
 </div>
 
-<!-- ── SCREEN: Main game ── -->
+<!-- ── SCREEN: Main game (NUSA-style: header pills + grouped nav strip + panels + terminal) ── -->
 <div id="screen-game" class="screen game-screen">
-  <div class="game-layout">
+  <div class="app-shell">
 
-    <!-- Hamburger menu — account / status / social (friends, guild, online players) -->
-    <button id="menu-btn" class="menu-btn" aria-label="Menu akun">☰</button>
-    <div id="side-menu" class="side-menu hidden">
-      <div class="side-menu-header">
-        <div id="menu-username">-</div>
-        <button id="btn-logout" class="btn-cmd small">Logout</button>
-      </div>
-
-      <div class="feature-section">
-        <div class="feature-title">📊 Status</div>
-        <button class="btn-cmd small" id="menu-status-btn">Lihat Status Lengkap</button>
-      </div>
-
-      <div class="feature-section">
-        <div class="feature-title">🏦 Bank <span class="hint-inline">(bunga 1%/hari)</span></div>
-        <button class="btn-cmd small" id="btn-bank-view">Cek Saldo</button>
-        <div id="bank-info" class="hint" style="display:none; margin:6px 0;"></div>
-        <div class="button-grid">
-          <button class="btn-cmd small" id="btn-bank-deposit">Deposit</button>
-          <button class="btn-cmd small" id="btn-bank-withdraw">Withdraw</button>
-        </div>
-      </div>
-
-      <div class="side-menu-group-title">— Sosial —</div>
-
-      <div class="feature-section">
-        <div class="feature-title">🌐 Pemain Online</div>
-        <button class="btn-cmd small" id="btn-online-refresh">Refresh Daftar Online</button>
-        <div id="online-players-list" class="button-grid" style="margin-top:6px;"></div>
-      </div>
-
-      <div class="feature-section">
-        <div class="feature-title">👥 Friend List</div>
-        <div class="button-grid">
-          <button class="btn-cmd small" id="btn-friends-view">Lihat Teman</button>
-          <button class="btn-cmd small" id="btn-friends-add">Tambah Teman</button>
-        </div>
-        <div id="friend-list" class="button-grid" style="margin-top:6px;"></div>
-      </div>
-
-      <div class="feature-section">
-        <div class="feature-title">🏰 Guild</div>
-        <div class="button-grid">
-          <button class="btn-cmd small" data-cmd="guild_info">Info Guild</button>
-          <button class="btn-cmd small" data-cmd="guild_leave">Keluar Guild</button>
-          <button class="btn-cmd small" id="btn-guild-create">Buat Guild</button>
-          <button class="btn-cmd small" id="btn-guild-invite">Undang Pemain</button>
-        </div>
-      </div>
-
-      <div class="feature-section">
-        <div class="feature-title">🏆 Ranking</div>
-        <button class="btn-cmd small" id="btn-open-rank">Buka Ranking</button>
-      </div>
-
-      <div class="credit-line">Made by @Nurz</div>
+    <!-- Status header — gaya ASCII character-sheet original LYRRA -->
+    <div id="top-header" class="top-header">
+      <div class="stat-row"><span class="k">NAME</span><span id="stat-name">-</span></div>
+      <div class="stat-row"><span class="k">CLASS</span><span id="stat-class">-</span></div>
+      <div class="stat-row"><span class="k">LV</span><span id="stat-lv">-</span></div>
+      <div class="stat-row"><span class="k">HP</span><span id="stat-hp" class="bar-track">-</span></div>
+      <div class="stat-row"><span class="k">MP</span><span id="stat-mp" class="bar-track">-</span></div>
+      <div class="stat-row"><span class="k">EXP</span><span id="stat-exp" class="bar-track">-</span></div>
+      <div class="stat-row"><span class="k">GOLD</span><span id="stat-gold">-</span></div>
+      <div class="stat-row"><span class="k">LOC</span><span id="stat-loc">-</span></div>
+      <button id="btn-logout" class="btn-cmd small header-logout">[ LOGOUT ]</button>
     </div>
 
-    <div id="stats-bar" class="stats-sidebar">-- stats --</div>
-
+    <!-- Terminal log — elemen utama, langsung di bawah header -->
     <div id="terminal" class="terminal"></div>
 
-    <div id="action-panel" class="action-panel">
-      <!-- Floating quick-action button — Heal / Skill / Item / Equip, from any tab -->
-      <button id="fab-quick" class="fab-btn" aria-label="Aksi cepat">⚡</button>
-
-      <!-- Bag button — full inventory with equip/use/sell actions -->
-      <button id="bag-btn" class="bag-btn" aria-label="Inventory">🎒</button>
-      <div class="tabbar">
-        <button class="tab-btn active" data-tab="main"><span class="num">[1]</span>Aksi</button>
-        <button class="tab-btn" data-tab="move"><span class="num">[2]</span>Pindah</button>
-        <button class="tab-btn" data-tab="fight"><span class="num">[3]</span>Lawan</button>
-        <button class="tab-btn" data-tab="shop"><span class="num">[4]</span>Toko</button>
-        <button class="tab-btn" data-tab="more"><span class="num">[5]</span>Fitur</button>
-        <button class="tab-btn" data-tab="chat"><span class="num">[6]</span>Chat</button>
-      </div>
-
-    <div class="tab-content active" data-tab-content="main">
-      <div class="button-grid">
-        <button class="btn-cmd" data-cmd="look">Lihat Area</button>
-        <button class="btn-cmd" data-cmd="stats">Status</button>
-        <button class="btn-cmd" data-cmd="monsters">Monster</button>
-      </div>
-      <div class="gather-row">
-        <span class="hint">Gather:</span>
-        <button class="btn-cmd small" data-cmd="gather" data-args='{"profession":"mining"}'>Mining</button>
-        <button class="btn-cmd small" data-cmd="gather" data-args='{"profession":"chopping"}'>Chopping</button>
-        <button class="btn-cmd small" data-cmd="gather" data-args='{"profession":"fishing"}'>Fishing</button>
-        <button class="btn-cmd small" data-cmd="gather" data-args='{"profession":"farming"}'>Farming</button>
-        <button class="btn-cmd small" data-cmd="gather" data-args='{"profession":"hunting"}'>Hunting</button>
-        <button class="btn-cmd small" data-cmd="gather" data-args='{"profession":"herbalism"}'>Herbalism</button>
-      </div>
+    <!-- Grouped horizontal nav strip (ASCII bracket tags, di bawah terminal) -->
+    <div id="nav-strip" class="nav-strip">
+      <button class="nav-item active" data-section="char">[CHR]<br>Karakter</button>
+      <button class="nav-item" data-section="world">[WLD]<br>Dunia</button>
+      <button class="nav-item" data-section="combat">[CBT]<br>Combat</button>
+      <button class="nav-item" data-section="prof">[PRF]<br>Profesi</button>
+      <button class="nav-item" data-section="craf">[CRF]<br>Crafting</button>
+      <span class="nav-divider"></span>
+      <button class="nav-item" data-section="quest">[QST]<br>Quest</button>
+      <button class="nav-item" data-section="shop">[SHP]<br>Shop</button>
+      <button class="nav-item" data-section="bank">[BNK]<br>Bank</button>
+      <button class="nav-item" data-section="upgrade">[UPG]<br>Upgrade</button>
+      <span class="nav-divider"></span>
+      <button class="nav-item" data-section="guild">[GLD]<br>Guild</button>
+      <button class="nav-item" data-section="dungeon">[DGN]<br>Dungeon</button>
+      <button class="nav-item" data-section="boss">[BOS]<br>Boss</button>
+      <button class="nav-item" data-section="social">[SOC]<br>Sosial</button>
+      <button class="nav-item" data-section="lb">[RNK]<br>Ranking</button>
+      <span class="nav-divider"></span>
+      <button class="nav-item" data-section="extra">[EXT]<br>Extra</button>
     </div>
 
-    <div class="tab-content" data-tab-content="move">
-      <div id="move-list" class="button-grid">Tekan "Lihat Area" dulu untuk melihat rute.</div>
-    </div>
+    <!-- Content area: one panel visible at a time -->
+    <div id="content-area" class="content-area">
 
-    <div class="tab-content" data-tab-content="fight">
-      <div id="fight-list" class="button-grid">Tekan "Monster" dulu untuk melihat musuh di sini.</div>
-    </div>
-
-    <div class="tab-content" data-tab-content="shop">
-      <div id="shop-list" class="button-grid">Tekan "Toko" saat berada di area dengan fasilitas toko.</div>
-      <button class="btn-cmd" data-cmd="shop">Buka Toko</button>
-    </div>
-
-    <div class="tab-content" data-tab-content="more">
-
-      <div class="feature-section">
-        <div class="feature-title">🛠️ Craft</div>
-        <div class="button-grid">
-          <button class="btn-cmd small" data-cmd="recipes" data-args='{"profession":"smithing"}'>Smithing</button>
-          <button class="btn-cmd small" data-cmd="recipes" data-args='{"profession":"alchemy"}'>Alchemy</button>
-          <button class="btn-cmd small" data-cmd="recipes" data-args='{"profession":"cooking"}'>Cooking</button>
-          <button class="btn-cmd small" data-cmd="recipes" data-args='{"profession":"tailoring"}'>Tailoring</button>
-        </div>
-        <div id="craft-list" class="button-grid"></div>
-      </div>
-
-      <div class="feature-section">
-        <div class="feature-title">🗺️ Dungeon</div>
-        <button class="btn-cmd small" data-cmd="dungeons">Lihat Dungeon</button>
-        <div id="dungeon-list" class="button-grid"></div>
-        <div id="dungeon-floor-panel" class="feature-section" style="display:none; margin-top:8px; padding-top:8px;">
-          <div id="dungeon-floor-status" class="hint" style="display:block; margin-bottom:6px;"></div>
-          <div class="button-grid">
-            <button class="btn-cmd small" id="btn-dungeon-attack">⚔️ Serang</button>
-            <button class="btn-cmd small" id="btn-dungeon-skill">✨ Pakai Skill</button>
-            <button class="btn-cmd small" id="btn-dungeon-advance">⬆️ Lantai Berikutnya</button>
-            <button class="btn-cmd small" id="btn-dungeon-leave">🚪 Keluar Dungeon</button>
-            <button class="btn-cmd small" id="btn-dungeon-refresh">🔄 Refresh</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="feature-section">
-        <div class="feature-title">📜 Quest</div>
-        <button class="btn-cmd small" data-cmd="quests">Lihat Quest</button>
-        <div id="quest-list" class="button-grid"></div>
-      </div>
-
-      <div class="feature-section">
-        <div class="feature-title">⚒️ Upgrade Equipment</div>
-        <div class="hint">Slot dipilih: <span id="upgrade-slot-label">weapon</span></div>
-        <div class="button-grid">
-          <button class="btn-cmd small slot-pick" data-slot="weapon">Weapon</button>
-          <button class="btn-cmd small slot-pick" data-slot="helmet">Helmet</button>
-          <button class="btn-cmd small slot-pick" data-slot="chest">Chest</button>
-          <button class="btn-cmd small slot-pick" data-slot="pants">Pants</button>
-          <button class="btn-cmd small slot-pick" data-slot="boots">Boots</button>
-          <button class="btn-cmd small slot-pick" data-slot="gloves">Gloves</button>
-          <button class="btn-cmd small slot-pick" data-slot="ring">Ring</button>
-          <button class="btn-cmd small slot-pick" data-slot="necklace">Necklace</button>
-          <button class="btn-cmd small slot-pick" data-slot="cape">Cape</button>
-          <button class="btn-cmd small slot-pick" data-slot="shield">Shield</button>
-        </div>
-        <div class="button-grid">
-          <button class="btn-cmd small" id="btn-enhance">Enhance</button>
-          <button class="btn-cmd small" id="btn-enchant">Enchant</button>
-          <button class="btn-cmd small" id="btn-reforge">Reforge</button>
-          <button class="btn-cmd small" id="btn-awaken">Awaken</button>
-          <button class="btn-cmd small" id="btn-socket-gem">Socket Gem</button>
-        </div>
-      </div>
-
-      <div class="feature-section">
-        <div class="feature-title">🐾 Pet</div>
-        <div class="button-grid">
-          <button class="btn-cmd small" data-cmd="pet_status">Status Pet</button>
-          <button class="btn-cmd small" data-cmd="pet_unequip">Lepas Pet</button>
-          <button class="btn-cmd small" id="btn-pet-equip">Pakai Pet</button>
-          <button class="btn-cmd small" id="btn-pet-feed">Beri Makan</button>
-        </div>
-      </div>
-
-      <div class="feature-section">
-        <div class="feature-title">🌍 World Boss</div>
-        <div class="button-grid">
-          <button class="btn-cmd small" data-cmd="worldboss_status">Status Boss</button>
-          <button class="btn-cmd small" data-cmd="worldboss_attack">Serang!</button>
-        </div>
-      </div>
-
-      <div class="feature-section">
-        <div class="feature-title">🛡️ Shield</div>
-        <button class="btn-cmd small" data-cmd="shield_info">Info Shield</button>
-      </div>
-
-      <div class="feature-section">
-        <div class="feature-title">🛒 Player Market</div>
-        <div class="button-grid">
-          <button class="btn-cmd small" data-cmd="market_browse" data-args="{}">Lihat Market</button>
-          <button class="btn-cmd small" id="btn-market-list">Jual di Market</button>
-        </div>
-        <div id="market-list" class="button-grid"></div>
-      </div>
-
-      <div class="feature-section">
-        <div class="feature-title">🎁 Gacha Chest</div>
-        <div class="button-grid">
-          <button class="btn-cmd small" data-cmd="chest_list">Lihat Chest</button>
-          <button class="btn-cmd small" data-cmd="chest_buy">Beli Peti Biasa</button>
-        </div>
-        <div id="chest-list" class="button-grid" style="margin-top:6px;"></div>
-      </div>
-
-      <div class="feature-section">
-        <div class="feature-title">📬 Mail</div>
-        <button class="btn-cmd small" data-cmd="mail">Cek Mail</button>
-        <div id="mail-list" class="button-grid"></div>
-      </div>
-
-    </div>
-
-    <div class="tab-content" data-tab-content="chat">
-      <div id="online-list" class="status-line">Online: -</div>
-      <div class="chat-input-row">
-        <input id="in-chat" type="text" dir="ltr" inputmode="text" placeholder="Ketik pesan...">
-        <button id="btn-send-chat" class="btn-primary">Kirim</button>
-      </div>
-    </div>
-    </div>
-
-    <!-- Quick Actions modal (FAB) — Heal / Skill / Item / Equip, closes via X or tapping outside -->
-    <div id="action-modal-backdrop" class="modal-backdrop hidden">
-      <div class="modal-panel">
-        <div class="modal-header">
-          <div class="feature-title">⚡ Aksi Cepat</div>
-          <button id="action-modal-close" class="modal-close" aria-label="Tutup">✕</button>
+      <!-- KARAKTER: status, skill, inventory, equip, heal -->
+      <div class="content-panel active" data-section-content="char">
+        <div class="feature-section">
+          <div class="feature-title">== STATUS ==</div>
+          <button class="btn-cmd small" data-cmd="stats">Lihat Status Lengkap</button>
         </div>
 
         <div class="feature-section">
-          <div class="feature-title">🩹 Heal</div>
+          <div class="feature-title">== HEAL ==</div>
           <button class="btn-cmd small" data-cmd="rest">Istirahat (Heal Gratis, +20%)</button>
         </div>
 
         <div class="feature-section">
-          <div class="feature-title">🧪 Item</div>
+          <div class="feature-title">== ITEM ==</div>
           <button class="btn-cmd small" data-cmd="inventory">Lihat Potion / Food</button>
           <div id="usable-list" class="button-grid" style="margin-top:6px;"></div>
         </div>
 
         <div class="feature-section">
-          <div class="feature-title">✨ Skill</div>
+          <div class="feature-title">== SKILL ==</div>
           <button class="btn-cmd small" data-cmd="skills">Lihat Skill</button>
           <div id="skill-list" class="button-grid" style="margin-top:6px;"></div>
         </div>
 
         <div class="feature-section">
-          <div class="feature-title">⚔️ Equip</div>
-          <button class="btn-cmd small" data-cmd="inventory">Lihat Equipment yang Bisa Dipakai</button>
+          <div class="feature-title">== INVENTORY &amp; EQUIPMENT ==</div>
+          <div class="button-grid">
+            <button class="btn-cmd small" data-cmd="inventory">Lihat Inventory</button>
+            <button class="btn-cmd small" data-cmd="equipment">Lihat Equipment Terpasang</button>
+          </div>
+          <div id="inventory-equipped-list" class="button-grid" style="margin-top:6px;"></div>
           <div id="equip-list" class="button-grid" style="margin-top:6px;"></div>
-          <button class="btn-cmd small" data-cmd="equipment" style="margin-top:6px;">Lihat Equipment Terpasang</button>
           <div id="unequip-list" class="button-grid" style="margin-top:6px;"></div>
+          <div id="inventory-full-list" class="button-grid" style="margin-top:6px;"></div>
         </div>
+
+        <div class="feature-section">
+          <div class="feature-title">== SHIELD ==</div>
+          <button class="btn-cmd small" data-cmd="shield_info">Info Shield</button>
+        </div>
+      </div>
+
+      <!-- 🗺️ DUNIA: area, pindah lokasi, peta -->
+      <div class="content-panel" data-section-content="world">
+        <div class="feature-section">
+          <div class="feature-title">== AREA SAAT INI ==</div>
+          <div class="button-grid">
+            <button class="btn-cmd small" data-cmd="look">Lihat Area</button>
+            <button class="btn-cmd small" id="btn-open-map">[ PETA ]</button>
+          </div>
+        </div>
+        <div class="feature-section">
+          <div class="feature-title">== PINDAH LOKASI ==</div>
+          <div id="move-list" class="button-grid">Tekan "Lihat Area" dulu untuk melihat rute.</div>
+        </div>
+      </div>
+
+      <!-- ⚔️ COMBAT: monster list -->
+      <div class="content-panel" data-section-content="combat">
+        <div class="feature-section">
+          <div class="feature-title">== MONSTER DI AREA INI ==</div>
+          <button class="btn-cmd small" data-cmd="monsters">Lihat Monster</button>
+          <div id="fight-list" class="button-grid" style="margin-top:6px;">Tekan "Lihat Monster" dulu.</div>
+        </div>
+      </div>
+
+      <!-- 🏹 PROFESI: gather -->
+      <div class="content-panel" data-section-content="prof">
+        <div class="feature-section">
+          <div class="feature-title">== GATHER ==</div>
+          <div class="button-grid">
+            <button class="btn-cmd small" data-cmd="gather" data-args='{"profession":"mining"}'>Mining</button>
+            <button class="btn-cmd small" data-cmd="gather" data-args='{"profession":"chopping"}'>Chopping</button>
+            <button class="btn-cmd small" data-cmd="gather" data-args='{"profession":"fishing"}'>Fishing</button>
+            <button class="btn-cmd small" data-cmd="gather" data-args='{"profession":"farming"}'>Farming</button>
+            <button class="btn-cmd small" data-cmd="gather" data-args='{"profession":"hunting"}'>Hunting</button>
+            <button class="btn-cmd small" data-cmd="gather" data-args='{"profession":"herbalism"}'>Herbalism</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 🔨 CRAFTING -->
+      <div class="content-panel" data-section-content="craf">
+        <div class="feature-section">
+          <div class="feature-title">== CRAFT ==</div>
+          <div class="button-grid">
+            <button class="btn-cmd small" data-cmd="recipes" data-args='{"profession":"smithing"}'>Smithing</button>
+            <button class="btn-cmd small" data-cmd="recipes" data-args='{"profession":"alchemy"}'>Alchemy</button>
+            <button class="btn-cmd small" data-cmd="recipes" data-args='{"profession":"cooking"}'>Cooking</button>
+            <button class="btn-cmd small" data-cmd="recipes" data-args='{"profession":"tailoring"}'>Tailoring</button>
+          </div>
+          <div id="craft-list" class="button-grid"></div>
+        </div>
+      </div>
+
+      <!-- 📜 QUEST -->
+      <div class="content-panel" data-section-content="quest">
+        <div class="feature-section">
+          <div class="feature-title">== QUEST ==</div>
+          <button class="btn-cmd small" data-cmd="quests">Lihat Quest</button>
+          <div id="quest-list" class="button-grid"></div>
+        </div>
+      </div>
+
+      <!-- 💰 SHOP / MARKET -->
+      <div class="content-panel" data-section-content="shop">
+        <div class="feature-section">
+          <div class="feature-title">== TOKO NPC ==</div>
+          <button class="btn-cmd small" data-cmd="shop">Buka Toko</button>
+          <div id="shop-list" class="button-grid" style="margin-top:6px;">Tekan "Buka Toko" saat berada di area dengan fasilitas toko.</div>
+        </div>
+        <div class="feature-section">
+          <div class="feature-title">== PLAYER MARKET ==</div>
+          <div class="button-grid">
+            <button class="btn-cmd small" data-cmd="market_browse" data-args="{}">Lihat Market</button>
+            <button class="btn-cmd small" id="btn-market-list">Jual di Market</button>
+          </div>
+          <div id="market-list" class="button-grid"></div>
+        </div>
+      </div>
+
+      <!-- 🏦 BANK & MAIL -->
+      <div class="content-panel" data-section-content="bank">
+        <div class="feature-section">
+          <div class="feature-title">== BANK <span class="hint-inline">(bunga 1%/hari)</span> ==</div>
+          <button class="btn-cmd small" id="btn-bank-view">Cek Saldo</button>
+          <div id="bank-info" class="hint" style="display:none; margin:6px 0;"></div>
+          <div class="button-grid">
+            <button class="btn-cmd small" id="btn-bank-deposit">Deposit</button>
+            <button class="btn-cmd small" id="btn-bank-withdraw">Withdraw</button>
+          </div>
+        </div>
+        <div class="feature-section">
+          <div class="feature-title">== MAIL ==</div>
+          <button class="btn-cmd small" data-cmd="mail">Cek Mail</button>
+          <div id="mail-list" class="button-grid"></div>
+        </div>
+      </div>
+
+      <!-- ⬆️ UPGRADE -->
+      <div class="content-panel" data-section-content="upgrade">
+        <div class="feature-section">
+          <div class="feature-title">== UPGRADE EQUIPMENT ==</div>
+          <div class="hint">Slot dipilih: <span id="upgrade-slot-label">weapon</span></div>
+          <div class="button-grid">
+            <button class="btn-cmd small slot-pick" data-slot="weapon">Weapon</button>
+            <button class="btn-cmd small slot-pick" data-slot="helmet">Helmet</button>
+            <button class="btn-cmd small slot-pick" data-slot="chest">Chest</button>
+            <button class="btn-cmd small slot-pick" data-slot="pants">Pants</button>
+            <button class="btn-cmd small slot-pick" data-slot="boots">Boots</button>
+            <button class="btn-cmd small slot-pick" data-slot="gloves">Gloves</button>
+            <button class="btn-cmd small slot-pick" data-slot="ring">Ring</button>
+            <button class="btn-cmd small slot-pick" data-slot="necklace">Necklace</button>
+            <button class="btn-cmd small slot-pick" data-slot="cape">Cape</button>
+            <button class="btn-cmd small slot-pick" data-slot="shield">Shield</button>
+          </div>
+          <div class="button-grid">
+            <button class="btn-cmd small" id="btn-enhance">Enhance</button>
+            <button class="btn-cmd small" id="btn-enchant">Enchant</button>
+            <button class="btn-cmd small" id="btn-reforge">Reforge</button>
+            <button class="btn-cmd small" id="btn-awaken">Awaken</button>
+            <button class="btn-cmd small" id="btn-socket-gem">Socket Gem</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 🏰 GUILD -->
+      <div class="content-panel" data-section-content="guild">
+        <div class="feature-section">
+          <div class="feature-title">== GUILD ==</div>
+          <div class="button-grid">
+            <button class="btn-cmd small" data-cmd="guild_info">Info Guild</button>
+            <button class="btn-cmd small" data-cmd="guild_leave">Keluar Guild</button>
+            <button class="btn-cmd small" id="btn-guild-create">Buat Guild</button>
+            <button class="btn-cmd small" id="btn-guild-invite">Undang Pemain</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 🗡️ DUNGEON -->
+      <div class="content-panel" data-section-content="dungeon">
+        <div class="feature-section">
+          <div class="feature-title">== DUNGEON ==</div>
+          <button class="btn-cmd small" data-cmd="dungeons">Lihat Dungeon</button>
+          <div id="dungeon-list" class="button-grid"></div>
+          <div id="dungeon-floor-panel" class="feature-section" style="display:none; margin-top:8px; padding-top:8px;">
+            <div id="dungeon-floor-status" class="hint" style="display:block; margin-bottom:6px;"></div>
+            <div class="button-grid">
+              <button class="btn-cmd small" id="btn-dungeon-attack">[ SERANG ]</button>
+              <button class="btn-cmd small" id="btn-dungeon-skill">[ SKILL ]</button>
+              <button class="btn-cmd small" id="btn-dungeon-advance">[ LANTAI BERIKUTNYA ]</button>
+              <button class="btn-cmd small" id="btn-dungeon-leave">[ KELUAR DUNGEON ]</button>
+              <button class="btn-cmd small" id="btn-dungeon-refresh">[ REFRESH ]</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 🐉 WORLD BOSS -->
+      <div class="content-panel" data-section-content="boss">
+        <div class="feature-section">
+          <div class="feature-title">== WORLD BOSS ==</div>
+          <div class="button-grid">
+            <button class="btn-cmd small" data-cmd="worldboss_status">Status Boss</button>
+            <button class="btn-cmd small" data-cmd="worldboss_attack">Serang!</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 💬 SOSIAL: friend list, online players, chat -->
+      <div class="content-panel" data-section-content="social">
+        <div class="feature-section">
+          <div class="feature-title">== PEMAIN ONLINE ==</div>
+          <button class="btn-cmd small" id="btn-online-refresh">Refresh Daftar Online</button>
+          <div id="online-players-list" class="button-grid" style="margin-top:6px;"></div>
+        </div>
+        <div class="feature-section">
+          <div class="feature-title">== FRIEND LIST ==</div>
+          <div class="button-grid">
+            <button class="btn-cmd small" id="btn-friends-view">Lihat Teman</button>
+            <button class="btn-cmd small" id="btn-friends-add">Tambah Teman</button>
+          </div>
+          <div id="friend-list" class="button-grid" style="margin-top:6px;"></div>
+        </div>
+        <div class="feature-section">
+          <div class="feature-title">== CHAT GLOBAL ==</div>
+          <div id="online-list" class="status-line">Online: -</div>
+          <div class="hint" style="display:block; margin-top:6px;">Ketik langsung di kolom command paling bawah layar buat chat (yang diawali "/" jadi command).</div>
+        </div>
+      </div>
+
+      <!-- 🏆 RANKING -->
+      <div class="content-panel" data-section-content="lb">
+        <div class="feature-section">
+          <div class="feature-title">== RANKING ==</div>
+          <div class="button-grid">
+            <button class="btn-cmd small" data-cmd="rank_level">Top Level</button>
+            <button class="btn-cmd small" data-cmd="rank_gold">Top Gold</button>
+            <button class="btn-cmd small" data-cmd="rank_pvp">Top PvP</button>
+            <button class="btn-cmd small" data-cmd="rank_guild">Top Guild</button>
+            <button class="btn-cmd small" id="btn-rank-prof">Top Profesi</button>
+          </div>
+          <div id="rank-list" class="button-grid" style="margin-top:8px;"></div>
+        </div>
+      </div>
+
+      <!-- 🐾 EXTRA: pet, gacha chest -->
+      <div class="content-panel" data-section-content="extra">
+        <div class="feature-section">
+          <div class="feature-title">== PET ==</div>
+          <div class="button-grid">
+            <button class="btn-cmd small" data-cmd="pet_status">Status Pet</button>
+            <button class="btn-cmd small" data-cmd="pet_unequip">Lepas Pet</button>
+            <button class="btn-cmd small" id="btn-pet-equip">Pakai Pet</button>
+            <button class="btn-cmd small" id="btn-pet-feed">Beri Makan</button>
+          </div>
+        </div>
+        <div class="feature-section">
+          <div class="feature-title">== GACHA CHEST ==</div>
+          <div class="button-grid">
+            <button class="btn-cmd small" data-cmd="chest_list">Lihat Chest</button>
+            <button class="btn-cmd small" data-cmd="chest_buy">Beli Peti Biasa</button>
+          </div>
+          <div id="chest-list" class="button-grid" style="margin-top:6px;"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Quick-command grid (persistent shortcut buttons, like the old game's log toolbar) -->
+    <div id="quick-cmd-grid" class="quick-cmd-grid">
+      <button class="qc-btn" data-qc="attack">[ATK]<br>Serang</button>
+      <button class="qc-btn" data-qc="skill">[SKL]<br>Skill</button>
+      <button class="qc-btn" data-qc="potion">[POT]<br>Potion</button>
+      <button class="qc-btn" data-qc="gather">[GTH]<br>Gather</button>
+      <button class="qc-btn" data-qc="rest">[RST]<br>Rest</button>
+      <button class="qc-btn" data-qc="dungeon">[DGN]<br>Dungeon</button>
+      <button class="qc-btn" data-qc="boss">[BOS]<br>Boss</button>
+      <button class="qc-btn" data-qc="shop">[SHP]<br>Shop</button>
+    </div>
+
+    <!-- Command input line — ketik command singkat, mis. /go forest, /help -->
+    <div class="cmd-input-row">
+      <span class="cmd-prompt">❯</span>
+      <input id="in-cmd" type="text" dir="ltr" inputmode="text" placeholder="Ketik command (/help) atau langsung chat...">
+      <button id="btn-cmd-send" class="btn-primary">↵</button>
+    </div>
+
+    <div class="credit-line">Made by @Nurz</div>
+
+    <!-- World Map modal — placeholder map image, closes via X or tapping outside -->
+    <div id="map-modal-backdrop" class="modal-backdrop hidden">
+      <div class="modal-panel modal-panel-wide">
+        <div class="modal-header">
+          <div class="feature-title">== PETA DUNIA ==</div>
+          <button id="map-modal-close" class="modal-close" aria-label="Tutup">X</button>
+        </div>
+        <div id="map-location-label" class="status-line" style="margin:0 0 8px;"></div>
+        <div class="map-scroll-wrap">
+          <img src="images/world-map.jpg" alt="Peta Dunia LYRRA" class="map-image">
+        </div>
+        <div class="hint" style="display:block; margin-top:8px; text-align:center;">Peta sementara — geser/cubit buat lihat detail. Versi final menyusul.</div>
       </div>
     </div>
 
-    <!-- Inventory modal (bag button) — semua item dengan aksi Pakai/Jual, closes via X or tapping outside -->
-    <div id="inventory-modal-backdrop" class="modal-backdrop hidden">
-      <div class="modal-panel">
-        <div class="modal-header">
-          <div class="feature-title">🎒 Inventory</div>
-          <button id="inventory-modal-close" class="modal-close" aria-label="Tutup">✕</button>
-        </div>
-        <div id="inventory-equipped-list" class="button-grid" style="margin-bottom:8px;"></div>
-        <div id="inventory-full-list" class="button-grid"></div>
-      </div>
-    </div>
-
-    <!-- Ranking modal — floating overlay, closes via X or tapping outside -->
-    <div id="rank-modal-backdrop" class="modal-backdrop hidden">
-      <div id="rank-modal" class="modal-panel">
-        <div class="modal-header">
-          <div class="feature-title">🏆 Ranking</div>
-          <button id="rank-modal-close" class="modal-close" aria-label="Tutup">✕</button>
-        </div>
-        <div class="button-grid">
-          <button class="btn-cmd small" data-cmd="rank_level">Top Level</button>
-          <button class="btn-cmd small" data-cmd="rank_gold">Top Gold</button>
-          <button class="btn-cmd small" data-cmd="rank_pvp">Top PvP</button>
-          <button class="btn-cmd small" data-cmd="rank_guild">Top Guild</button>
-          <button class="btn-cmd small" id="btn-rank-prof">Top Profesi</button>
-        </div>
-        <div id="rank-list" class="button-grid" style="margin-top:8px;"></div>
-      </div>
-    </div>
   </div>
 </div>
 
-<script src="app.js?v=26"></script>
+<script src="app.js?v=31"></script>
 </body>
 </html>
