@@ -2,6 +2,16 @@
 // LYRRA MMORPG client. Connects to a game server by IP:port over WebSocket,
 // exactly like adding a server address in Minecraft/Terraria.
 
+// ── Alamat server yang ditanam langsung (buat build APK) ──────────────────
+// Isi HOST kalau mau auto-connect ke IP:Port tetap (misal buat APK yang
+// connect ke server dengan IP statis). Dikosongkan lagi sekarang karena
+// balik pakai Cloudflare Tunnel — domainnya ganti tiap restart server,
+// jadi nggak bisa ditanem, harus diisi manual/dari daftar server tersimpan.
+const EMBEDDED_SERVER = {
+  HOST: '',
+  PORT: '',
+};
+
 let ws = null;
 let pendingAuthMode = null; // 'login' | 'register'
 let player = null;
@@ -74,13 +84,17 @@ $('#btn-connect').onclick = () => {
 
   $('#connect-status').textContent = 'Menghubungkan...';
 
-  // Kalau Port dikosongkan -> anggap ini domain publik (mis. Cloudflare
-  // Tunnel: xxxx.trycloudflare.com), pakai wss:// tanpa port (default 443).
-  // Kalau Port diisi -> anggap koneksi langsung ke IP/host, pakai ws://.
-  const url = port ? `ws://${host}:${port}` : `wss://${host}`;
+  // Halaman ini sendiri HTTPS (mis. situs Vercel) -> WAJIB pakai wss:// buat
+  // apa aja, termasuk IP:Port langsung (server-nya harus punya TLS aktif,
+  // baik lewat domain tunnel atau sertifikat self-signed). Kalau halaman ini
+  // HTTP biasa (mis. dibuka lokal), ws:// polos ke IP:Port masih boleh.
+  const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
+  const url = port ? `${scheme}://${host}:${port}` : `wss://${host}`;
 
   try { ws = new WebSocket(url); } catch (e) {
-    $('#connect-status').textContent = 'Alamat server tidak valid.';
+    $('#connect-status').textContent = (location.protocol === 'https:')
+      ? 'Diblokir browser (mixed content). Server perlu wss aktif (domain tunnel atau TLS self-signed).'
+      : 'Alamat server tidak valid.';
     return;
   }
   currentHost = host;
@@ -99,7 +113,11 @@ $('#btn-connect').onclick = () => {
       showScreen('#screen-auth');
     }
   };
-  ws.onerror = () => { $('#connect-status').textContent = 'Gagal konek. Cek alamat server & pastikan server menyala.'; };
+  ws.onerror = () => {
+    $('#connect-status').textContent = (scheme === 'wss')
+      ? 'Gagal konek. Kalau pakai IP:Port + TLS self-signed, buka https://IP:Port/ langsung di browser dulu buat trust sertifikatnya, baru coba lagi di sini.'
+      : 'Gagal konek. Cek alamat server & pastikan server menyala.';
+  };
   ws.onclose = () => {
     if ($('#screen-game').classList.contains('active') || $('#screen-auth').classList.contains('active') || $('#screen-class').classList.contains('active')) {
       alert('Koneksi ke server terputus.');
@@ -138,6 +156,19 @@ function renderClassList(classes) {
   });
 }
 
+function renderRaceList(races) {
+  const box = $('#race-list');
+  box.innerHTML = '';
+  races.forEach(r => {
+    const btn = document.createElement('button');
+    btn.className = 'btn-cmd';
+    btn.textContent = `T${r.tier} ${r.emoji || ''} ${r.name}`;
+    btn.title = r.desc;
+    btn.onclick = () => sendCommand('pickrace', { raceId: r.id });
+    box.appendChild(btn);
+  });
+}
+
 // ── Stats sidebar (ASCII character sheet) ──
 function asciiBar(cur, max, width = 10, fillChar = '#', emptyChar = '-') {
   const pct = max > 0 ? Math.max(0, Math.min(1, cur / max)) : 0;
@@ -149,6 +180,7 @@ function renderStats() {
   if (!player) return;
 
   $('#stat-name').textContent = player.username;
+  $('#stat-race').textContent = player.race ? (RACE_NAMES[player.race] || player.race) : '-';
   $('#stat-class').textContent = player.class || '-';
   $('#stat-lv').textContent = player.level;
   $('#stat-hp').innerHTML = `[<span class="bar-fill hp">${asciiBar(player.hp, player.maxHp)}</span>] ${player.hp}/${player.maxHp}`;
@@ -291,6 +323,12 @@ function renderFriendButtons(friends) {
 }
 
 // ── World Map modal (tetap modal — ini konten visual, bukan panel navigasi) ──
+const RACE_NAMES = {
+  goblin: 'Goblin', halfling: 'Halfling', gnome: 'Gnome', fairy: 'Fairy',
+  human: 'Manusia', elf: 'Elf', beastfolk: 'Beastfolk', dwarf: 'Dwarf',
+  undead: 'Undead', orc: 'Orc', troll: 'Troll', ogre: 'Ogre',
+  dragonkin: 'Dragonkin', demon: 'Demon',
+};
 const AREA_NAMES = {
   starter_village: 'Desa Awal', forest: 'Hutan', deep_forest: 'Hutan Dalam',
   mine: 'Tambang', cave: 'Gua', desert: 'Gurun', oasis: 'Oasis', swamp: 'Rawa',
@@ -816,8 +854,15 @@ function onMessage(evt) {
 
     case 'auth_ok':
       if (msg.sessionToken) saveSession(currentHost, currentPort, msg.sessionToken);
-      showScreen(msg.needsClass ? '#screen-class' : '#screen-game');
-      if (msg.needsClass) sendCommand('classes');
+      if (msg.needsRace) {
+        showScreen('#screen-race');
+        sendCommand('races');
+      } else if (msg.needsClass) {
+        showScreen('#screen-class');
+        sendCommand('classes');
+      } else {
+        showScreen('#screen-game');
+      }
       break;
 
     case 'session_invalid':
@@ -835,7 +880,12 @@ function onMessage(evt) {
     case 'state':
       player = msg.player;
       renderStats();
-      if (player.class && $('#screen-class').classList.contains('active')) {
+      if (!player.race && $('#screen-race').classList.contains('active')) {
+        // masih di layar pilih ras, tunggu
+      } else if (player.race && !player.class && $('#screen-race').classList.contains('active')) {
+        showScreen('#screen-class');
+        sendCommand('classes');
+      } else if (player.class && ($('#screen-class').classList.contains('active') || $('#screen-race').classList.contains('active'))) {
         showScreen('#screen-game');
       }
       break;
@@ -843,6 +893,7 @@ function onMessage(evt) {
     case 'log':
       logLines(msg.lines, 'sys');
       if (msg.data?.classes) renderClassList(msg.data.classes);
+      if (msg.data?.races) renderRaceList(msg.data.races);
       if (msg.data?.area) renderMoveButtons(msg.data.area);
       if (msg.data?.monsters) renderFightButtons(msg.data.monsters);
       if (msg.data?.items) renderShopButtons(msg.data);
@@ -875,4 +926,12 @@ function onMessage(evt) {
     default:
       break;
   }
+}
+
+// ── Auto-connect pakai alamat server yang ditanam (kalau di-set) ──────────
+if (EMBEDDED_SERVER.HOST) {
+  $('#in-host').value = EMBEDDED_SERVER.HOST;
+  $('#in-port').value = EMBEDDED_SERVER.PORT || '';
+  $('#connect-status').textContent = 'Menghubungkan otomatis ke server...';
+  $('#btn-connect').click();
 }

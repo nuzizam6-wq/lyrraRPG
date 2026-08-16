@@ -8,7 +8,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="stylesheet" href="style.css?v=31">
+<link rel="stylesheet" href="style.css?v=32">
 </head>
 <body>
 
@@ -61,6 +61,15 @@
   </div>
 </div>
 
+<!-- ── SCREEN: Pick race (first time only, sebelum pilih class) ── -->
+<div id="screen-race" class="screen">
+  <div class="crt-box">
+    <pre class="ascii-title small">== PILIH RAS ==</pre>
+    <div class="hint" style="display:block; text-align:center; margin-bottom:10px;">Tier 1 = terlemah (Goblin) &mdash; Tier 14 = terkuat (Demon)</div>
+    <div id="race-list" class="button-grid"></div>
+  </div>
+</div>
+
 <!-- ── SCREEN: Pick class (first time only) ── -->
 <div id="screen-class" class="screen">
   <div class="crt-box">
@@ -76,6 +85,7 @@
     <!-- Status header — gaya ASCII character-sheet original LYRRA -->
     <div id="top-header" class="top-header">
       <div class="stat-row"><span class="k">NAME</span><span id="stat-name">-</span></div>
+      <div class="stat-row"><span class="k">RACE</span><span id="stat-race">-</span></div>
       <div class="stat-row"><span class="k">CLASS</span><span id="stat-class">-</span></div>
       <div class="stat-row"><span class="k">LV</span><span id="stat-lv">-</span></div>
       <div class="stat-row"><span class="k">HP</span><span id="stat-hp" class="bar-track">-</span></div>
@@ -422,6 +432,6 @@
   </div>
 </div>
 
-<script src="app.js?v=31"></script>
+<script src="app.js?v=35"></script>
 </body>
 </html>
